@@ -64,6 +64,48 @@ body {
   margin-bottom: 14px;
 }
 
+.query-form {
+  align-items: flex-start;
+  margin: 0 0 18px;
+  padding: 14px 16px 0;
+  border: 1px solid var(--app-line);
+  border-radius: 6px;
+  background: #f8fbf9;
+}
+
+.query-form .el-form-item {
+  margin-bottom: 14px;
+}
+
+.query-form .el-input,
+.query-form .el-select {
+  min-width: 180px;
+}
+
+.query-form .el-button + .el-button {
+  margin-left: 8px;
+}
+
+.avatar-uploader .el-upload {
+  border: 1px dashed var(--el-border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: var(--el-transition-duration-fast);
+}
+
+.avatar-uploader .el-upload:hover {
+  border-color: var(--el-color-primary);
+}
+
+.el-icon.avatar-uploader-icon {
+  width: 178px;
+  height: 178px;
+  color: #8c939d;
+  font-size: 28px;
+  text-align: center;
+}
+
 .el-table {
   --el-table-border-color: var(--app-line);
   --el-table-header-bg-color: #f1f6f3;

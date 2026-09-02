@@ -4,7 +4,7 @@
   import {ref} from 'vue'
   import {ElMessage, ElMessageBox} from 'element-plus'
   //图片上传
-  import {Plus} from '@element-plus/icons-vue'
+  import {Plus, Search, Refresh} from '@element-plus/icons-vue'
   import {useTokenStore} from '@/store/token.js'
   const tokenStore = useTokenStore();
 
@@ -46,6 +46,12 @@
 
   const onSearch = () => {
     elderQuery.value.page = 1
+    loadData()
+  }
+
+  const resetSearch = () => {
+    elderQuery.value = {name: '', phone: '', tagIds: [], page: 1, limit: 10}
+    createTimeRange.value = []
     loadData()
   }
 
@@ -186,10 +192,6 @@
   }
 
   const assignTag = () => {
-    const dataDTO = {
-      elderId: elder.value.id,
-      assignedTagIdList: assignedTagIdList.value
-    };
     const tagIds = assignedTagIdList.value.join(',');
     // /elders/assignTag?elderId=1&tagIds=1,2,3
     elderApi.assignTag(elder.value.id, tagIds).then((result) => {
@@ -216,7 +218,7 @@
         <el-button type="danger" @click="deleteAll">批量删除</el-button>
       </div>
     </template>
-    <el-form :inline="true">
+    <el-form :inline="true" class="query-form" @keyup.enter="onSearch">
       <el-form-item label="名字">
         <el-input v-model="elderQuery.name" placeholder="请输入名字" clearable style="width: 200px"/>
       </el-form-item>
@@ -248,7 +250,8 @@
         />
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" @click="onSearch">搜索</el-button>
+        <el-button type="primary" :icon="Search" @click="onSearch">搜索</el-button>
+        <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
       </el-form-item>
     </el-form>
     <el-table :data="list" border style="width: 100%" show-overflow-tooltip ref="multipleTableRef" @selection-change="handleSelectionChange">
@@ -260,7 +263,7 @@
       <el-table-column prop="idCardNo" label="身份证号" :show-overflow-tooltip="true"/>
       <el-table-column prop="avatar" label="头像">
         <template #default="{row}">
-          <img :src="row.avatar" style="max-height: 40px; max-width: 120px;"/>
+          <img :src="row.avatar" alt="老人头像" style="max-height: 40px; max-width: 120px;"/>
         </template>
       </el-table-column>
       <el-table-column prop="birthday" label="出生日期" width="100"/>
@@ -351,7 +354,7 @@
             :on-success="handleAvatarSuccess"
             :headers="{Authorization: tokenStore.token}"
         >
-          <img v-if="elder.avatar" :src="elder.avatar" class="avatar"/>
+          <img v-if="elder.avatar" :src="elder.avatar" class="avatar" alt="老人头像"/>
           <el-icon v-else class="avatar-uploader-icon">
             <Plus/>
           </el-icon>
@@ -395,25 +398,3 @@
   }
 </style>
 
-<style>
-  .avatar-uploader .el-upload {
-    border: 1px dashed var(--el-border-color);
-    border-radius: 6px;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-    transition: var(--el-transition-duration-fast);
-  }
-
-  .avatar-uploader .el-upload:hover {
-    border-color: var(--el-color-primary);
-  }
-
-  .el-icon.avatar-uploader-icon {
-    font-size: 28px;
-    color: #8c939d;
-    width: 178px;
-    height: 178px;
-    text-align: center;
-  }
-</style>

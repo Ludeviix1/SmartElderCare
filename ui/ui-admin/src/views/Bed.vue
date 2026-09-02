@@ -1,7 +1,7 @@
 <script setup>
 import {ref} from 'vue'
 import {ElMessage, ElMessageBox} from 'element-plus'
-import {Plus} from '@element-plus/icons-vue'
+import {Plus, Search, Refresh} from '@element-plus/icons-vue'
 import bedApi from '@/api/bed.js'
 import elderApi from '@/api/elder.js'
 
@@ -22,6 +22,10 @@ const statusType = status => ({0: 'success', 1: 'warning', 2: 'info'})[status] |
 const loadData = () => bedApi.list(query.value).then(result => { list.value = result.data.records; total.value = result.data.total })
 const loadElders = () => elderApi.list({page: 1, limit: 1000}).then(result => { elderOptions.value = result.data.records })
 const search = () => { query.value.page = 1; loadData() }
+const resetSearch = () => {
+  query.value = {building: '', roomNo: '', status: null, page: 1, limit: 10}
+  loadData()
+}
 const showAdd = () => { title.value = '新增床位'; form.value = {status: 0, floor: 1}; dialogVisible.value = true }
 const showEdit = id => bedApi.getById(id).then(result => { title.value = '编辑床位'; form.value = result.data; dialogVisible.value = true })
 const save = () => {
@@ -53,11 +57,11 @@ loadData()
 <template>
   <el-card>
     <template #header><el-button type="primary" :icon="Plus" @click="showAdd">新增床位</el-button><el-button type="danger" @click="removeAll">批量删除</el-button></template>
-    <el-form :inline="true">
+    <el-form :inline="true" class="query-form" @keyup.enter="search">
       <el-form-item label="楼栋"><el-input v-model="query.building" clearable placeholder="如：1号楼" /></el-form-item>
       <el-form-item label="房间号"><el-input v-model="query.roomNo" clearable /></el-form-item>
       <el-form-item label="状态"><el-select v-model="query.status" clearable placeholder="全部" style="width: 120px"><el-option label="空闲" :value="0" /><el-option label="已入住" :value="1" /><el-option label="停用" :value="2" /></el-select></el-form-item>
-      <el-form-item><el-button type="primary" @click="search">查询</el-button></el-form-item>
+      <el-form-item><el-button type="primary" :icon="Search" @click="search">查询</el-button><el-button :icon="Refresh" @click="resetSearch">重置</el-button></el-form-item>
     </el-form>
     <el-table :data="list" border @selection-change="rows => selectedIds = rows.map(row => row.id)">
       <el-table-column type="selection" width="55" />

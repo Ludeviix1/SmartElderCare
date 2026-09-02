@@ -1,14 +1,12 @@
 <script setup>
   import {
-    Management,
-    Promotion,
-    PriceTag,
     UserFilled,
     User,
     Crop,
     EditPen,
     SwitchButton,
-    CaretBottom
+    CaretBottom,
+    Plus
   } from '@element-plus/icons-vue'
   //条目被点击后,调用的函数
   import {useRouter, useRoute} from 'vue-router'
@@ -49,7 +47,7 @@
   //获取用户信息
   const getUserInfo = () => {
     userApi.userInfo().then(result => {
-      if (result.code == 1) {
+      if (result.code === 1) {
         userInfoStore.setUserInfo(result.data.user)
         menuData.value = normalizeMenuData(result.data.routerList)
         userInfoStore.setBtnList(result.data.btnList)
@@ -66,7 +64,7 @@
 
   const updateUserInfo = () => {
     userApi.update(user.value.id, user.value).then(result => {
-      if (result.code == 1) {
+      if (result.code === 1) {
         ElMessage.success(result.msg)
         dialogFormVisible.value = false
         getUserInfo()
@@ -111,7 +109,7 @@
   const resetForm = ref()
   const resetPassword = async (formEl) => {
     if (!formEl) return
-    await formEl.validate((valid, fields) => {
+    await formEl.validate((valid) => {
       if (valid) {
         userApi.resetPassword(userPasswordDTO.value).then(result => {
           if (result.code === 1) {
@@ -197,9 +195,9 @@
     <el-aside width="200px">
       <div class="el-aside__logo"></div>
       <!-- element-plus的菜单标签 -->
-      <el-menu active-text-color="#ffd04b" background-color="#232323" text-color="#fff" router :default-active="route.path">
+      <el-menu active-text-color="#126b62" background-color="#ffffff" text-color="#4d625c" router :default-active="route.path">
         <!-- 动态生成菜单 -->
-        <template v-for="(menu, index) in menuData" :index="index.toString()">
+        <template v-for="(menu, index) in menuData">
           <el-sub-menu v-if="menu.children?.length>0" :index="menu.path || ('sub-' + index)">
             <template #title>
               <component
@@ -209,7 +207,7 @@
               </component>
               <span>{{ menu.name }}</span>
             </template>
-            <el-menu-item v-for="(child, ind) in menu.children" :index="child.path">
+            <el-menu-item v-for="child in menu.children" :index="child.path">
               <el-icon><component :is="getIcon(child.icon)"></component></el-icon>
               <span>{{ child.name }}</span>
             </el-menu-item>
@@ -316,7 +314,7 @@
             :show-file-list="false"
             :on-success="handleAvatarSuccess"
             :headers="{Authorization: tokenStore.token}">
-          <img v-if="user.avatar" :src="user.avatar" class="avatar" />
+          <img v-if="user.avatar" :src="user.avatar" class="avatar" alt="用户头像" />
           <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
         </el-upload>
       </el-form-item>
@@ -360,44 +358,42 @@
     background: var(--app-canvas);
 
     .el-aside {
-      background: #143f3a;
-      border-right: 1px solid rgba(255, 255, 255, 0.12);
+      background: #ffffff;
+      border-right: 1px solid var(--app-line);
       overflow: hidden;
 
       &__logo {
         height: 88px;
         margin: 0 18px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+        border-bottom: 1px solid var(--app-line);
         background: url('@/assets/logo.svg') no-repeat left center / 44px auto;
       }
 
       .el-menu {
         border-right: none;
         padding: 12px 10px;
-        background: transparent !important;
+        --el-menu-bg-color: #ffffff !important;
+        --el-menu-hover-bg-color: #f0f7f4 !important;
+        --el-menu-text-color: #4d625c !important;
+        --el-menu-active-color: #126b62 !important;
+        background: #ffffff !important;
 
         :deep(.el-menu-item),
         :deep(.el-sub-menu__title) {
           height: 44px;
           margin: 3px 0;
           border-radius: 5px;
-          color: #dce9e5 !important;
+          color: #4d625c !important;
           line-height: 44px;
         }
 
         :deep(.el-menu-item:hover),
         :deep(.el-sub-menu__title:hover) {
-          background: rgba(255, 255, 255, 0.09) !important;
-        }
-
-        :deep(.el-menu-item.is-active) {
-          background: #e2f0ea !important;
-          color: #115b52 !important;
-          font-weight: 600;
+          background: #f0f7f4 !important;
         }
 
         :deep(.el-sub-menu .el-menu) {
-          background: rgba(0, 0, 0, 0.1) !important;
+          background: #f7faf8 !important;
         }
 
         :deep(.el-icon) {

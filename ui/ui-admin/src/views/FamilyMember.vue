@@ -1,7 +1,7 @@
 <script setup>
 import {ref} from 'vue'
 import {ElMessage, ElMessageBox} from 'element-plus'
-import {Plus} from '@element-plus/icons-vue'
+import {Plus, Search, Refresh} from '@element-plus/icons-vue'
 import familyMemberApi from '@/api/familyMember.js'
 import elderApi from '@/api/elder.js'
 
@@ -22,6 +22,10 @@ const loadData = () => familyMemberApi.list(query.value).then(result => {
   total.value = result.data.total
 })
 const search = () => { query.value.page = 1; loadData() }
+const resetSearch = () => {
+  query.value = {name: '', phone: '', elderId: null, page: 1, limit: 10}
+  loadData()
+}
 const showAdd = () => { title.value = '新增家属'; form.value = {isPrimary: 0}; dialogVisible.value = true }
 const showEdit = id => familyMemberApi.getById(id).then(result => {
   title.value = '编辑家属'; form.value = result.data; dialogVisible.value = true
@@ -52,7 +56,7 @@ loadData()
       <el-button type="primary" :icon="Plus" @click="showAdd">新增家属</el-button>
       <el-button type="danger" @click="removeAll">批量删除</el-button>
     </template>
-    <el-form :inline="true">
+    <el-form :inline="true" class="query-form" @keyup.enter="search">
       <el-form-item label="家属姓名"><el-input v-model="query.name" clearable placeholder="请输入姓名" /></el-form-item>
       <el-form-item label="联系电话"><el-input v-model="query.phone" clearable placeholder="请输入电话" /></el-form-item>
       <el-form-item label="关联老人">
@@ -60,7 +64,7 @@ loadData()
           <el-option v-for="elder in elderOptions" :key="elder.id" :label="elder.name" :value="elder.id" />
         </el-select>
       </el-form-item>
-      <el-form-item><el-button type="primary" @click="search">查询</el-button></el-form-item>
+      <el-form-item><el-button type="primary" :icon="Search" @click="search">查询</el-button><el-button :icon="Refresh" @click="resetSearch">重置</el-button></el-form-item>
     </el-form>
     <el-table :data="list" border @selection-change="rows => selectedIds = rows.map(row => row.id)">
       <el-table-column type="selection" width="55" />
