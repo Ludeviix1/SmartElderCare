@@ -104,7 +104,7 @@
 
 <template>
   <el-button type="success" size="mini" @click="showAddDialog()">添加顶级菜单</el-button>
-  <el-table :data="list" style="width: 100%; margin-bottom: 20px" row-key="id" border default-expand-all>
+  <el-table :data="list" style="width: 100%; margin-bottom: 20px" row-key="id" border>
     <el-table-column prop="name" label="名称"/>
     <el-table-column prop="icon" width="80px" label="图标" #default="{row}">
       <el-icon><component :is="row.icon" /></el-icon>
