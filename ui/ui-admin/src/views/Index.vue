@@ -264,7 +264,7 @@
     <el-container>
       <!-- 头部区域 -->
       <el-header>
-        <div><strong>思途后台管理系统{{ zhansgan }}</strong></div>
+        <div><strong>智慧社区养老系统</strong></div>
         <!-- 下拉菜单 -->
         <!-- command: 条目被点击后会触发,在事件函数上可以声明一个参数,接收条目对应的指令 -->
         <el-dropdown placement="bottom-end" @command="handleCommand">
@@ -292,7 +292,6 @@
         <router-view></router-view>
       </el-main>
       <!-- 底部区域 -->
-      <el-footer>后台管理 ©2024 Created by Gao</el-footer>
     </el-container>
   </el-container>
 
