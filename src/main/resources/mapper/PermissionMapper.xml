@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.elder.mapper.PermissionMapper">
+
+    <select id="selectPermissionByUserId" resultType="com.elder.pojo.entity.Permission">
+        SELECT DISTINCT
+            p.id,
+            p.parent_id,
+            p.NAME,
+            p.type,
+            p.path,
+            p.permission_value,
+            p.icon,
+            p.sort
+        FROM user_role AS ar
+                 INNER JOIN role_permission AS rp ON ar.role_id = rp.role_id
+                 INNER JOIN permission AS p ON rp.permission_id = p.id
+        WHERE
+            ar.user_id = #{id}
+        ORDER BY
+            p.sort ASC;
+    </select>
+</mapper>

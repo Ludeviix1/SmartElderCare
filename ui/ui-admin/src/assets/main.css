@@ -1,0 +1,123 @@
+@import './base.css';
+
+:root {
+  --app-canvas: #f4f7f5;
+  --app-surface: #ffffff;
+  --app-ink: #20332f;
+  --app-muted: #6d7d78;
+  --app-line: #dce5e0;
+  --app-brand: #16736a;
+  --app-brand-deep: #104d47;
+  --app-accent: #c76b43;
+  --el-color-primary: #16736a;
+  --el-color-primary-light-3: #5aa197;
+  --el-color-primary-light-5: #8bc0b9;
+  --el-color-primary-light-7: #c6e0db;
+  --el-color-primary-light-9: #edf7f5;
+  --el-border-radius-base: 6px;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+body {
+  background: var(--app-canvas);
+  color: var(--app-ink);
+  font-family: Inter, "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+  font-size: 14px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.el-card {
+  border: 1px solid var(--app-line);
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(24, 54, 48, 0.05);
+}
+
+.el-card__header {
+  padding: 14px 18px;
+  border-bottom-color: var(--app-line);
+  background: #fbfcfb;
+}
+
+.el-card__body {
+  padding: 18px;
+}
+
+.el-form--inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 4px;
+  margin-bottom: 10px;
+}
+
+.el-form-item {
+  margin-bottom: 14px;
+}
+
+.el-table {
+  --el-table-border-color: var(--app-line);
+  --el-table-header-bg-color: #f1f6f3;
+  --el-table-row-hover-bg-color: #f4faf7;
+  color: var(--app-ink);
+}
+
+.el-table th.el-table__cell {
+  height: 44px;
+  color: #49615b;
+  font-weight: 600;
+}
+
+.el-table td.el-table__cell {
+  padding: 11px 0;
+}
+
+.el-pagination {
+  --el-pagination-button-bg-color: #fff;
+  --el-pagination-hover-color: var(--app-brand);
+}
+
+.el-dialog {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.el-dialog__header {
+  margin-right: 0;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--app-line);
+}
+
+.el-dialog__title {
+  color: var(--app-ink);
+  font-weight: 650;
+}
+
+.el-dialog__body {
+  padding: 22px 24px 8px;
+}
+
+.el-dialog__footer {
+  padding: 14px 24px 20px;
+}
+
+@media (max-width: 768px) {
+  .el-card {
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+  }
+
+  .el-card__body {
+    padding: 14px;
+  }
+}
