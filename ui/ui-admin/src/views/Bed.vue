@@ -1,7 +1,7 @@
 <script setup>
 import {ref} from 'vue'
 import {ElMessage, ElMessageBox} from 'element-plus'
-import {Plus, Search, Refresh} from '@element-plus/icons-vue'
+import {Plus, Refresh, Search} from '@element-plus/icons-vue'
 import bedApi from '@/api/bed.js'
 import elderApi from '@/api/elder.js'
 
@@ -17,20 +17,25 @@ const elderOptions = ref([])
 const title = ref('')
 let selectedIds = []
 
+const buildingOptions = Array.from({length: 6}, (_, index) => `${index + 1}号楼`)
+const floorOptions = Array.from({length: 6}, (_, index) => index + 1)
+const roomOptions = Array.from({length: 25}, (_, index) => String(index + 1))
 const statusText = status => ({0: '空闲', 1: '已入住', 2: '停用'})[status] || '未知'
 const statusType = status => ({0: 'success', 1: 'warning', 2: 'info'})[status] || 'info'
-const loadData = () => bedApi.list(query.value).then(result => { list.value = result.data.records; total.value = result.data.total })
+
+const loadData = () => bedApi.list(query.value).then(result => {
+  list.value = result.data.records
+  total.value = result.data.total
+})
 const loadElders = () => elderApi.list({page: 1, limit: 1000}).then(result => { elderOptions.value = result.data.records })
 const search = () => { query.value.page = 1; loadData() }
-const resetSearch = () => {
-  query.value = {building: '', roomNo: '', status: null, page: 1, limit: 10}
-  loadData()
-}
-const showAdd = () => { title.value = '新增床位'; form.value = {status: 0, floor: 1}; dialogVisible.value = true }
+const resetSearch = () => { query.value = {building: '', roomNo: '', status: null, page: 1, limit: 10}; loadData() }
+const showAdd = () => { title.value = '新增床位'; form.value = {status: 0, floor: null, building: '', roomNo: ''}; dialogVisible.value = true }
 const showEdit = id => bedApi.getById(id).then(result => { title.value = '编辑床位'; form.value = result.data; dialogVisible.value = true })
 const save = () => {
+  if (!form.value.building || !form.value.floor || !form.value.roomNo || !form.value.bedNo) return ElMessage.warning('请完整选择楼栋、楼层、房间号并填写床位号')
   const request = form.value.id ? bedApi.update(form.value.id, form.value) : bedApi.add(form.value)
-  request.then(result => { if (result.code === 1) { ElMessage.success(result.msg); dialogVisible.value = false; loadData() } })
+  request.then(result => { if (result.code === 1) { ElMessage.success(result.msg || '保存成功'); dialogVisible.value = false; loadData() } })
 }
 const showAssign = row => { assignBed.value = row; selectedElderId.value = null; assignVisible.value = true }
 const assign = () => {
@@ -56,7 +61,10 @@ loadData()
 
 <template>
   <el-card>
-    <template #header><el-button type="primary" :icon="Plus" @click="showAdd">新增床位</el-button><el-button type="danger" @click="removeAll">批量删除</el-button></template>
+    <template #header>
+      <el-button type="primary" :icon="Plus" @click="showAdd">新增床位</el-button>
+      <el-button type="danger" @click="removeAll">批量删除</el-button>
+    </template>
     <el-form :inline="true" class="query-form" @keyup.enter="search">
       <el-form-item label="楼栋"><el-input v-model="query.building" clearable placeholder="如：1号楼" /></el-form-item>
       <el-form-item label="房间号"><el-input v-model="query.roomNo" clearable /></el-form-item>
@@ -73,6 +81,23 @@ loadData()
     </el-table>
     <el-pagination v-model:current-page="query.page" v-model:page-size="query.limit" :page-sizes="[10, 20, 30, 40]" :total="total" layout="total, sizes, prev, pager, next, jumper" style="margin-top: 20px; justify-content: flex-end" @change="loadData" />
   </el-card>
-  <el-dialog v-model="dialogVisible" :title="title" width="500" :lock-scroll="false" :close-on-click-modal="false"><el-form :model="form" label-width="90px"><el-form-item label="楼栋" required><el-input v-model="form.building" /></el-form-item><el-form-item label="楼层" required><el-input-number v-model="form.floor" :min="1" /></el-form-item><el-form-item label="房间号" required><el-input v-model="form.roomNo" /></el-form-item><el-form-item label="床位号" required><el-input v-model="form.bedNo" /></el-form-item><el-form-item label="床位类型"><el-input v-model="form.bedType" placeholder="如：单人床" /></el-form-item><el-form-item label="月费"><el-input-number v-model="form.monthlyPrice" :precision="2" :min="0" /></el-form-item><el-form-item label="状态"><el-radio-group v-model="form.status"><el-radio :value="0">空闲</el-radio><el-radio :value="2">停用</el-radio></el-radio-group></el-form-item><el-form-item label="备注"><el-input v-model="form.remark" type="textarea" /></el-form-item></el-form><template #footer><el-button @click="dialogVisible = false">取消</el-button><el-button type="primary" @click="save">保存</el-button></template></el-dialog>
-  <el-dialog v-model="assignVisible" title="办理入住" width="420" :lock-scroll="false"><el-form label-width="80px"><el-form-item label="床位"><span>{{ assignBed?.building }} {{ assignBed?.roomNo }} 房 {{ assignBed?.bedNo }} 床</span></el-form-item><el-form-item label="入住老人"><el-select v-model="selectedElderId" filterable placeholder="请选择老人" style="width: 100%"><el-option v-for="elder in elderOptions" :key="elder.id" :label="`${elder.name}（${elder.phone || '无电话'}）`" :value="elder.id" /></el-select></el-form-item></el-form><template #footer><el-button @click="assignVisible = false">取消</el-button><el-button type="primary" @click="assign">确认入住</el-button></template></el-dialog>
+
+  <el-dialog v-model="dialogVisible" :title="title" width="500" :lock-scroll="false" :close-on-click-modal="false">
+    <el-form :model="form" label-width="90px">
+      <el-form-item label="楼栋" required><el-select v-model="form.building" placeholder="请选择楼栋" style="width: 100%"><el-option v-for="building in buildingOptions" :key="building" :label="building" :value="building" /></el-select></el-form-item>
+      <el-form-item label="楼层" required><el-select v-model="form.floor" placeholder="请选择楼层" style="width: 100%"><el-option v-for="floor in floorOptions" :key="floor" :label="`${floor}层`" :value="floor" /></el-select></el-form-item>
+      <el-form-item label="房间号" required><el-select v-model="form.roomNo" placeholder="请选择房间号" style="width: 100%"><el-option v-for="room in roomOptions" :key="room" :label="`${room}号`" :value="room" /></el-select></el-form-item>
+      <el-form-item label="床位号" required><el-input v-model="form.bedNo" /></el-form-item>
+      <el-form-item label="床位类型"><el-input v-model="form.bedType" placeholder="如：单人床" /></el-form-item>
+      <el-form-item label="月费"><el-input-number v-model="form.monthlyPrice" :precision="2" :min="0" /></el-form-item>
+      <el-form-item label="状态"><el-radio-group v-model="form.status"><el-radio :value="0">空闲</el-radio><el-radio :value="2">停用</el-radio></el-radio-group></el-form-item>
+      <el-form-item label="备注"><el-input v-model="form.remark" type="textarea" /></el-form-item>
+    </el-form>
+    <template #footer><el-button @click="dialogVisible = false">取消</el-button><el-button type="primary" @click="save">保存</el-button></template>
+  </el-dialog>
+
+  <el-dialog v-model="assignVisible" title="办理入住" width="420" :lock-scroll="false">
+    <el-form label-width="80px"><el-form-item label="床位"><span>{{ assignBed?.building }} {{ assignBed?.roomNo }} 房 {{ assignBed?.bedNo }} 床</span></el-form-item><el-form-item label="入住老人"><el-select v-model="selectedElderId" filterable placeholder="请选择老人" style="width: 100%"><el-option v-for="elder in elderOptions" :key="elder.id" :label="`${elder.name}（${elder.phone || '无电话'}）`" :value="elder.id" /></el-select></el-form-item></el-form>
+    <template #footer><el-button @click="assignVisible = false">取消</el-button><el-button type="primary" @click="assign">确认入住</el-button></template>
+  </el-dialog>
 </template>
