@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.elder.pojo.vo.ExamAppointmentVO;
 import com.elder.pojo.query.ExamAppointmentQuery;
 import com.elder.pojo.dto.AdminAppointmentDTO;
+import com.elder.pojo.dto.ExamExecutionDTO;
+import java.util.Map;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
 import java.util.List;
@@ -39,4 +41,6 @@ public interface IExamAppointmentService extends IService<ExamAppointment> {
     void addAdmin(AdminAppointmentDTO dto);
     void assign(Long id, Long caregiverId);
     Long autoAssign(Long id);
+    Map<String, Object> executionDetail(Long id);
+    void execute(Long id, ExamExecutionDTO dto, Long currentUserId, boolean caregiver);
 }

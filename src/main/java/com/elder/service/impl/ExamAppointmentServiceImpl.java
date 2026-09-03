@@ -12,6 +12,7 @@ import com.elder.mapper.ExamAppointmentMapper;
 import com.elder.pojo.vo.ExamAppointmentVO;
 import com.elder.pojo.query.ExamAppointmentQuery;
 import com.elder.pojo.dto.AdminAppointmentDTO;
+import com.elder.pojo.dto.ExamExecutionDTO;
 import com.elder.pojo.entity.CareTask;
 import com.elder.pojo.entity.User;
 import com.elder.service.ICareTaskService;
@@ -253,5 +254,30 @@ public class ExamAppointmentServiceImpl extends ServiceImpl<ExamAppointmentMappe
         int offset = (int) Math.floorMod(id == null ? 0 : id, candidates.size());
         Long selected = candidates.get(offset).getId();
         assign(id, selected); return selected;
+    }
+
+    @Override
+    public Map<String, Object> executionDetail(Long id) {
+        ExamAppointment appointment = getById(id);
+        if (appointment == null) throw new ServiceException("预约不存在");
+        return Map.of("appointment", appointment, "items", examAppointmentItemService.lambdaQuery()
+                .eq(ExamAppointmentItem::getAppointmentId, id).list());
+    }
+
+    @Override
+    @Transactional
+    public void execute(Long id, ExamExecutionDTO dto, Long currentUserId, boolean caregiver) {
+        ExamAppointment appointment = getById(id);
+        if (appointment == null) throw new ServiceException("预约不存在");
+        if (caregiver && !currentUserId.equals(appointment.getCaregiverId())) throw new ServiceException("无权执行该体检预约");
+        if (appointment.getAssignmentStatus() == null || appointment.getAssignmentStatus() != 1) throw new ServiceException("请先分配护工");
+        if (appointment.getStatus() == 3) throw new ServiceException("已取消预约不能执行");
+        if (dto.getItems() != null) {
+            dto.getItems().forEach(item -> { item.setAppointmentId(id); item.setStatus(1); });
+            examAppointmentItemService.updateBatchById(dto.getItems());
+        }
+        appointment.setStatus(2);
+        appointment.setRemark(dto.getRemark());
+        updateById(appointment);
     }
 }
