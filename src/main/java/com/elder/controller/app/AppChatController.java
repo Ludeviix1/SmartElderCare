@@ -4,6 +4,7 @@ import com.elder.pojo.dto.ChatRequestDTO;
 import com.elder.service.IChatService;
 import com.elder.util.JwtUtil;
 import com.elder.util.Result;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,6 +24,11 @@ public class AppChatController {
     @PostMapping
     public Result<String> chat(@RequestHeader("Authorization") String token, @RequestBody ChatRequestDTO request) {
         return Result.ok(chatService.chat(getElderId(token), request == null ? null : request.getMessage()));
+    }
+
+    @PostMapping(value = "/chatStream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public reactor.core.publisher.Flux<String> chatStream(@RequestHeader("Authorization") String token, ChatRequestDTO request) {
+        return chatService.chatStream(getElderId(token), request == null ? null : request.getMessage());
     }
 
     @DeleteMapping("/history")

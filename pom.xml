@@ -106,15 +106,14 @@
             <artifactId>easyexcel</artifactId>
             <version>3.1.1</version>
         </dependency>
-        <!-- 讯飞星火问答 SDK，基于 https://github.com/briqt/xunfei-spark4j -->
+<!--        &lt;!&ndash; 讯飞星火问答 SDK，基于 https://github.com/briqt/xunfei-spark4j &ndash;&gt;
         <dependency>
             <groupId>io.github.briqt</groupId>
             <artifactId>xunfei-spark4j</artifactId>
             <version>1.3.0</version>
-        </dependency>
+        </dependency>-->
 
-        <!--
-        阿里云百炼 / DashScope 接入保留，当前未配置 API Key，暂不启用。
+<!--        阿里云百炼 / DashScope 接入保留，当前未配置 API Key，启用。-->
         <dependency>
             <groupId>com.alibaba.cloud.ai</groupId>
             <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
@@ -125,7 +124,11 @@
             <artifactId>spring-ai-autoconfigure-model-chat-memory</artifactId>
             <version>1.1.0</version>
         </dependency>
-        -->
+        <!-- Explicit for the streaming chat contract (Flux) used by IChatService. -->
+        <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-core</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
