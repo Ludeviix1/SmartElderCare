@@ -17,6 +17,7 @@ import ExamItem from '@/views/ExamItem.vue'
 import ExamPackage from '@/views/ExamPackage.vue'
 import FamilyMember from '@/views/FamilyMember.vue'
 import Bed from '@/views/Bed.vue'
+import ExamAppointment from '@/views/ExamAppointment.vue'
 
 //创建路由器
 const router = createRouter({
@@ -36,6 +37,7 @@ const router = createRouter({
                 {path: '/exam-package', component: ExamPackage},
                 {path: '/family-member', component: FamilyMember},
                 {path: '/bed', component: Bed},
+                {path: '/exam-appointment', component: ExamAppointment},
                 {path: '/role', component: Role},
                 {path: '/permission', component: Permission}
             ]

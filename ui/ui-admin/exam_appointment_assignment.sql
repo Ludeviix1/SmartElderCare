@@ -1,0 +1,18 @@
+-- 在已有 exam_appointment 表执行一次
+ALTER TABLE exam_appointment
+  ADD COLUMN IF NOT EXISTS caregiver_id BIGINT NULL COMMENT '负责护工ID',
+  ADD COLUMN IF NOT EXISTS assignment_status TINYINT NOT NULL DEFAULT 0 COMMENT '0未分配 1已分配';
+CREATE INDEX idx_exam_appointment_caregiver ON exam_appointment (caregiver_id);
+CREATE INDEX idx_exam_appointment_assignment ON exam_appointment (assignment_status);
+
+-- 将体检预约加入权限树，并授予管理员角色（重复执行不会重复插入）
+INSERT INTO permission (parent_id, name, type, icon, sort, status, deleted, create_time, update_time)
+SELECT 0, '体检管理', 0, 'DataAnalysis', 80, 1, 0, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM permission WHERE parent_id = 0 AND name = '体检管理' AND deleted = 0);
+SET @exam_root_id = (SELECT id FROM permission WHERE parent_id = 0 AND name = '体检管理' AND deleted = 0 LIMIT 1);
+INSERT INTO permission (parent_id, name, type, path, icon, sort, status, deleted, create_time, update_time)
+SELECT @exam_root_id, '体检预约管理', 1, '/exam-appointment', 'Calendar', 1, 1, 0, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM permission WHERE path = '/exam-appointment' AND deleted = 0);
+INSERT INTO role_permission (role_id, permission_id, create_time, update_time)
+SELECT r.id, p.id, NOW(), NOW() FROM role r JOIN permission p ON p.path = '/exam-appointment' AND p.deleted = 0
+WHERE r.code IN ('admin', 'administrator') AND NOT EXISTS (SELECT 1 FROM role_permission rp WHERE rp.role_id = r.id AND rp.permission_id = p.id);

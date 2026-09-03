@@ -4,6 +4,9 @@ import com.elder.pojo.dto.AppAppointmentDTO;
 import com.elder.pojo.entity.ExamAppointment;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.elder.pojo.vo.ExamAppointmentVO;
+import com.elder.pojo.query.ExamAppointmentQuery;
+import com.elder.pojo.dto.AdminAppointmentDTO;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 
 import java.util.List;
 
@@ -31,4 +34,9 @@ public interface IExamAppointmentService extends IService<ExamAppointment> {
      * 取消预约（只能取消自己的、待体检状态的预约）
      */
     void cancel(Long id, Long elderId);
+
+    IPage<ExamAppointmentVO> listAdmin(ExamAppointmentQuery query);
+    void addAdmin(AdminAppointmentDTO dto);
+    void assign(Long id, Long caregiverId);
+    Long autoAssign(Long id);
 }

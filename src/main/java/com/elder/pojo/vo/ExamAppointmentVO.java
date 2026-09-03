@@ -53,6 +53,13 @@ public class ExamAppointmentVO {
      */
     private Integer status;
 
+    private Long caregiverId;
+    private String caregiverName;
+    private Integer assignmentStatus;
+
+    /** 预约备注 */
+    private String remark;
+
     /**
      * 套餐包含的体检项目数量
      */

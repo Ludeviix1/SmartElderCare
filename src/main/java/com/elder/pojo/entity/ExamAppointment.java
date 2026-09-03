@@ -65,6 +65,14 @@ public class ExamAppointment implements Serializable {
      */
     private Integer status;
 
+    /** 分配护工ID，未分配时为空 */
+    @TableField("caregiver_id")
+    private Long caregiverId;
+
+    /** 分配状态：0未分配，1已分配 */
+    @TableField("assignment_status")
+    private Integer assignmentStatus;
+
     /**
      * 备注
      */

@@ -10,6 +10,15 @@ import com.elder.pojo.entity.ExamPackage;
 import com.elder.pojo.entity.ExamPackageItem;
 import com.elder.mapper.ExamAppointmentMapper;
 import com.elder.pojo.vo.ExamAppointmentVO;
+import com.elder.pojo.query.ExamAppointmentQuery;
+import com.elder.pojo.dto.AdminAppointmentDTO;
+import com.elder.pojo.entity.CareTask;
+import com.elder.pojo.entity.User;
+import com.elder.service.ICareTaskService;
+import com.elder.service.IUserService;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.elder.service.IElderService;
 import com.elder.service.IExamAppointmentItemService;
 import com.elder.service.IExamAppointmentService;
@@ -55,6 +64,10 @@ public class ExamAppointmentServiceImpl extends ServiceImpl<ExamAppointmentMappe
     private IExamItemService examItemService;
     @Autowired
     private IExamAppointmentItemService examAppointmentItemService;
+    @Autowired
+    private IUserService userService;
+    @Autowired
+    private ICareTaskService careTaskService;
 
     @Transactional
     @Override
@@ -100,6 +113,7 @@ public class ExamAppointmentServiceImpl extends ServiceImpl<ExamAppointmentMappe
         examAppointment.setAppointmentTime(appointmentTime);
         examAppointment.setPrice(examPackage.getPrice());
         examAppointment.setStatus(0);
+        examAppointment.setAssignmentStatus(0);
         save(examAppointment);
 
         //写入套餐内项目的快照，后续体检结果直接录到这些明细上
@@ -192,5 +206,52 @@ public class ExamAppointmentServiceImpl extends ServiceImpl<ExamAppointmentMappe
         update.setId(id);
         update.setStatus(3);
         updateById(update);
+    }
+
+    @Override
+    @Transactional
+    public void addAdmin(AdminAppointmentDTO dto) {
+        AppAppointmentDTO app = new AppAppointmentDTO();
+        app.setPackageId(dto.getPackageId()); app.setDate(dto.getDate()); app.setTime(dto.getTime());
+        add(app, dto.getElderId());
+        if (dto.getRemark() != null) {
+            ExamAppointment latest = lambdaQuery().eq(ExamAppointment::getElderId, dto.getElderId())
+                    .eq(ExamAppointment::getPackageId, dto.getPackageId()).orderByDesc(ExamAppointment::getId).list().stream().findFirst().orElse(null);
+            if (latest != null) { latest.setRemark(dto.getRemark()); updateById(latest); }
+        }
+    }
+
+    @Override
+    public IPage<ExamAppointmentVO> listAdmin(ExamAppointmentQuery query) {
+        Page<ExamAppointment> page = new Page<>(query.getPage(), query.getLimit());
+        LambdaQueryWrapper<ExamAppointment> wrapper = new LambdaQueryWrapper<ExamAppointment>().eq(query.getElderId() != null, ExamAppointment::getElderId, query.getElderId())
+                .eq(query.getPackageId() != null, ExamAppointment::getPackageId, query.getPackageId())
+                .eq(query.getCaregiverId() != null, ExamAppointment::getCaregiverId, query.getCaregiverId())
+                .eq(query.getAssignmentStatus() != null, ExamAppointment::getAssignmentStatus, query.getAssignmentStatus())
+                .eq(query.getStatus() != null, ExamAppointment::getStatus, query.getStatus())
+                .ge(query.getBeginDate() != null && !query.getBeginDate().isBlank(), ExamAppointment::getAppointmentDate, query.getBeginDate())
+                .le(query.getEndDate() != null && !query.getEndDate().isBlank(), ExamAppointment::getAppointmentDate, query.getEndDate())
+                .orderByDesc(ExamAppointment::getAppointmentDate).orderByDesc(ExamAppointment::getAppointmentTime);
+        IPage<ExamAppointment> raw = page(page, wrapper);
+        var users = userService.listByRoleCode("hugong").stream().collect(Collectors.toMap(User::getId, User::getName));
+        var elders = elderService.listByIds(raw.getRecords().stream().map(ExamAppointment::getElderId).distinct().toList()).stream().collect(Collectors.toMap(Elder::getId, Elder::getName));
+        var packages = examPackageService.listByIds(raw.getRecords().stream().map(ExamAppointment::getPackageId).distinct().toList()).stream().collect(Collectors.toMap(ExamPackage::getId, ExamPackage::getName));
+        return raw.convert(item -> { ExamAppointmentVO vo = new ExamAppointmentVO(); vo.setId(item.getId()); vo.setElderName(elders.get(item.getElderId())); vo.setPackageId(item.getPackageId()); vo.setPackageName(packages.get(item.getPackageId())); vo.setAppointmentDate(item.getAppointmentDate().toString()); vo.setAppointmentTime(item.getAppointmentTime().format(TIME_FORMATTER)); vo.setPrice(item.getPrice()); vo.setStatus(item.getStatus()); vo.setRemark(item.getRemark()); vo.setCaregiverId(item.getCaregiverId()); vo.setCaregiverName(users.get(item.getCaregiverId())); vo.setAssignmentStatus(item.getAssignmentStatus() == null ? 0 : item.getAssignmentStatus()); return vo; });
+    }
+
+    @Override public void assign(Long id, Long caregiverId) { ExamAppointment a = getById(id); if (a == null) throw new ServiceException("预约不存在"); a.setCaregiverId(caregiverId); a.setAssignmentStatus(caregiverId == null ? 0 : 1); updateById(a); }
+
+    @Override
+    public Long autoAssign(Long id) {
+        List<User> users = userService.listByRoleCode("hugong");
+        if (users.isEmpty()) throw new ServiceException("暂无可分配的护工");
+        Map<Long, Long> loads = users.stream().collect(Collectors.toMap(User::getId, u ->
+                careTaskService.lambdaQuery().eq(CareTask::getUserId, u.getId()).in(CareTask::getStatus, 0).count()
+                        + lambdaQuery().eq(ExamAppointment::getCaregiverId, u.getId()).in(ExamAppointment::getStatus, 0, 1).count()));
+        long minLoad = loads.values().stream().mapToLong(Long::longValue).min().orElse(0);
+        List<User> candidates = users.stream().filter(u -> loads.get(u.getId()) == minLoad).toList();
+        int offset = (int) Math.floorMod(id == null ? 0 : id, candidates.size());
+        Long selected = candidates.get(offset).getId();
+        assign(id, selected); return selected;
     }
 }
