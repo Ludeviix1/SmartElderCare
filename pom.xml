@@ -106,6 +106,26 @@
             <artifactId>easyexcel</artifactId>
             <version>3.1.1</version>
         </dependency>
+        <!-- 讯飞星火问答 SDK，基于 https://github.com/briqt/xunfei-spark4j -->
+        <dependency>
+            <groupId>io.github.briqt</groupId>
+            <artifactId>xunfei-spark4j</artifactId>
+            <version>1.3.0</version>
+        </dependency>
+
+        <!--
+        阿里云百炼 / DashScope 接入保留，当前未配置 API Key，暂不启用。
+        <dependency>
+            <groupId>com.alibaba.cloud.ai</groupId>
+            <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
+            <version>1.1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-autoconfigure-model-chat-memory</artifactId>
+            <version>1.1.0</version>
+        </dependency>
+        -->
     </dependencies>
 
     <build>

@@ -64,6 +64,19 @@ public class AppAppointmentController {
         return Result.ok("取消成功");
     }
 
+    /** 查看已完成体检报告，只允许查看本人的预约 */
+    @GetMapping("/{id}/report")
+    public Result report(@RequestHeader("Authorization") String token, @PathVariable Long id) {
+        Long elderId = getElderIdFromToken(token);
+        ExamAppointmentVO appointment = examAppointmentService.listByElderId(elderId).stream()
+                .filter(item -> item.getId().equals(id)).findFirst()
+                .orElseThrow(() -> new com.elder.exception.ServiceException("预约不存在或无权查看"));
+        if (appointment.getStatus() != 2) {
+            return Result.error("体检尚未完成，暂不能查看报告");
+        }
+        return Result.ok(examAppointmentService.executionDetail(id));
+    }
+
     /**
      * 从token中解析当前登录老人的id
      */

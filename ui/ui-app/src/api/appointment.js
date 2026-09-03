@@ -12,6 +12,9 @@ const appointmentApi = {
     //取消预约
     cancel(id) {
         return request.put(`/appointment/${id}/cancel`)
+    },
+    report(id) {
+        return request.get(`/appointment/${id}/report`)
     }
 }
 

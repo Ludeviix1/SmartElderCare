@@ -1,5 +1,5 @@
 <script setup>
-  import {computed, onMounted, ref} from 'vue'
+  import {computed, onActivated, onMounted, ref} from 'vue'
   import {showConfirmDialog, showLoadingToast, showToast} from 'vant'
   import {useRouter} from 'vue-router'
   import appointmentApi from '@/api/appointment.js'
@@ -22,14 +22,9 @@
     })
   }
 
-  onMounted(() => {
-    //列表数据变化过（提交/取消预约）或第一次进入时拉取
-    if (appointmentStore.dirty) {
-      loadList()
-    } else {
-      loading.value = false
-    }
-  })
+  // 状态可由管理端完成体检后改变，进入页面时始终以服务端数据为准。
+  onMounted(loadList)
+  onActivated(loadList)
 
   //状态筛选Tab：全部/待体检/已完成/已取消
   const activeTab = ref(0)
@@ -127,7 +122,7 @@
           <van-button v-if="appointment.status === 0" size="small" plain round type="danger" @click="cancelAppointment(appointment)">
             取消预约
           </van-button>
-          <van-button v-else-if="appointment.status === 2" size="small" plain round type="primary">
+          <van-button v-else-if="appointment.status === 2" size="small" plain round type="primary" @click="router.push('/appointment/' + appointment.id + '/report')">
             查看报告
           </van-button>
         </div>
