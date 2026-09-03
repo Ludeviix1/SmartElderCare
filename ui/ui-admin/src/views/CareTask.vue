@@ -2,10 +2,12 @@
   import careTaskApi from '@/api/careTask.js'
   import elderApi from '@/api/elder.js'
   import careItemApi from '@/api/careItem.js'
+  import userApi from '@/api/user.js'
   import {ref} from 'vue'
   import {ElMessage, ElMessageBox} from 'element-plus'
   import {Plus} from '@element-plus/icons-vue'
   import hasBtnPermission from "@/utils/btnPermission.js";
+  import {useUserInfoStore} from '@/store/userInfo.js'
   //打卡照片上传
   import {useTokenStore} from '@/store/token.js'
   const tokenStore = useTokenStore();
@@ -17,6 +19,7 @@
   const careTaskQuery = ref({
     elderId: null,
     careItemId: null,
+    userId: null,
     status: null,
     page: 1,
     limit: 10
@@ -34,11 +37,13 @@
     })
   }
 
-  loadData()
+  const userInfoStore = useUserInfoStore()
+  const isHugong = ref(false)
 
   //搜索下拉用的老人、护理项目
   const elderOptions = ref([])
   const careItemOptions = ref([])
+  const userOptions = ref([])
   const loadOptions = () => {
     elderApi.list({page: 1, limit: 1000}).then(result => {
       elderOptions.value = result.data.records
@@ -46,8 +51,19 @@
     careItemApi.list({page: 1, limit: 1000}).then(result => {
       careItemOptions.value = result.data.records
     })
+    userApi.listByRoleCode('hugong').then(result => { userOptions.value = result.data || [] })
   }
   loadOptions()
+  const initAccess = () => {
+    const currentUserId = userInfoStore.user?.id
+    if (!currentUserId) return Promise.resolve()
+    return userApi.selectAssignedRole(currentUserId).then(result => {
+      const assignedIds = result.data?.assignedRoleIdList || []
+      isHugong.value = (result.data?.roleList || []).some(role => role.code === 'hugong' && assignedIds.includes(role.id))
+      if (isHugong.value) careTaskQuery.value.userId = currentUserId
+    })
+  }
+  initAccess().finally(loadData)
 
   const onSearch = () => {
     careTaskQuery.value.page = 1
@@ -174,6 +190,11 @@
       <el-form-item label="护理项目">
         <el-select v-model="careTaskQuery.careItemId" placeholder="请选择护理项目" clearable filterable style="width: 160px">
           <el-option v-for="careItem in careItemOptions" :key="careItem.id" :label="careItem.name" :value="careItem.id"/>
+        </el-select>
+      </el-form-item>
+      <el-form-item v-if="!isHugong" label="护理人员">
+        <el-select v-model="careTaskQuery.userId" placeholder="全部护工" clearable filterable style="width: 160px">
+          <el-option v-for="user in userOptions" :key="user.id" :label="user.name" :value="user.id"/>
         </el-select>
       </el-form-item>
       <el-form-item label="状态">

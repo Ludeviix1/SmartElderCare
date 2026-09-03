@@ -17,9 +17,64 @@
   import {useTokenStore} from '@/store/token.js'
   const tokenStore = useTokenStore();
   import {useUserInfoStore} from '@/store/userInfo.js'
-  import {ref} from "vue";
+  import {ref, onMounted, onBeforeUnmount, nextTick, watch} from "vue";
+  import * as echarts from 'echarts';
   import {ElMessage} from "element-plus";
   const userInfoStore = useUserInfoStore();
+
+  const occupancyChart = ref(null)
+  const trendChart = ref(null)
+  const taskChart = ref(null)
+  let charts = []
+
+  const initDashboardCharts = async () => {
+    await nextTick()
+    const chartOptions = [
+      {
+        el: occupancyChart.value,
+        option: {
+          tooltip: {trigger: 'item'},
+          legend: {bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10, textStyle: {color: '#6d7d78'}},
+          series: [{type: 'pie', radius: ['58%', '78%'], center: ['50%', '45%'], avoidLabelOverlap: false,
+            label: {show: true, position: 'center', formatter: '入住率\\n{big|86%}', rich: {big: {fontSize: 23, fontWeight: 700, color: '#20332f', lineHeight: 34}, color: '#6d7d78', lineHeight: 20}},
+            data: [{value: 86, name: '已入住', itemStyle: {color: '#16736a'}}, {value: 14, name: '空置床位', itemStyle: {color: '#dfeae5'}}]}]
+        }
+      },
+      {
+        el: trendChart.value,
+        option: {
+          tooltip: {trigger: 'axis'},
+          grid: {left: 38, right: 20, top: 18, bottom: 28},
+          xAxis: {type: 'category', boundaryGap: false, data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'], axisLine: {lineStyle: {color: '#dce5e0'}}, axisLabel: {color: '#6d7d78'}},
+          yAxis: {type: 'value', min: 0, max: 100, splitNumber: 4, splitLine: {lineStyle: {color: '#edf2ef'}}, axisLabel: {color: '#8a9893'}},
+          series: [{name: '护理完成率', type: 'line', smooth: true, symbol: 'circle', symbolSize: 7, data: [76, 82, 79, 88, 91, 86, 94], lineStyle: {width: 3, color: '#c76b43'}, itemStyle: {color: '#c76b43'}, areaStyle: {color: 'rgba(199,107,67,.12)'}}]
+        }
+      },
+      {
+        el: taskChart.value,
+        option: {
+          tooltip: {trigger: 'item'},
+          series: [{type: 'pie', radius: ['52%', '76%'], center: ['50%', '45%'], label: {show: false}, data: [
+            {value: 68, name: '已完成', itemStyle: {color: '#16736a'}}, {value: 18, name: '进行中', itemStyle: {color: '#d49a47'}}, {value: 6, name: '待处理', itemStyle: {color: '#dce5e0'}}
+          ]}]
+        }
+      }
+    ]
+    charts = chartOptions.filter(item => item.el).map(item => {
+      const chart = echarts.init(item.el)
+      chart.setOption(item.option)
+      return chart
+    })
+  }
+
+  const resizeCharts = () => charts.forEach(chart => chart.resize())
+  watch(() => route.path, async (path) => {
+    charts.forEach(chart => chart.dispose())
+    charts = []
+    if (path === '/') await initDashboardCharts()
+  })
+  onMounted(() => { initDashboardCharts(); window.addEventListener('resize', resizeCharts) })
+  onBeforeUnmount(() => { window.removeEventListener('resize', resizeCharts); charts.forEach(chart => chart.dispose()) })
 
   const dialogFormVisible = ref(false)
   const user = ref({})
@@ -131,6 +186,7 @@
 
   // 菜单  用户管理， 分类管理， 商品管理
   const menuData = ref([
+    {name: '首页', icon: 'HomeFilled', path: "/"},
     {name: '家属管理', icon: 'UserFilled', path: "/family-member"},
     {name: '床位管理', icon: 'House', path: "/bed"},
     {name: '老人管理', icon: 'Notebook', path: "/elder"},
@@ -182,7 +238,11 @@
       return aSort - bSort || a._menuIndex - b._menuIndex
     })
 
-    return [...otherMenus, ...permissionMenu].map(({_menuIndex, ...menu}) => menu)
+    const orderedMenus = [...otherMenus, ...permissionMenu].map(({_menuIndex, ...menu}) => menu)
+    if (!orderedMenus.some(menu => menu.path === '/')) {
+      orderedMenus.unshift({name: '首页', icon: 'HomeFilled', path: '/'})
+    }
+    return orderedMenus
   }
 
 
@@ -286,10 +346,34 @@
       </el-header>
       <!-- 中间区域 -->
       <el-main>
-        <!-- <div style="width: 1290px; height: 570px;border: 1px solid red;">
-                    内容展示区
-                </div> -->
-        <router-view></router-view>
+        <section v-if="route.path === '/'" class="dashboard">
+          <div class="dashboard-heading">
+            <div>
+              <p class="eyebrow">运营概览 · {{ new Date().toLocaleDateString('zh-CN', {month: 'long', day: 'numeric'}) }}</p>
+              <h1>欢迎回来，{{ userInfoStore.user.name || '管理员' }}</h1>
+              <p class="heading-note">这里是养老中心今天的运营状态，所有关键指标一目了然。</p>
+            </div>
+            <el-button type="primary" plain @click="router.push('/elder')">查看老人档案 <el-icon><CaretBottom /></el-icon></el-button>
+          </div>
+
+          <div class="metric-grid">
+            <div class="metric-card metric-green"><span class="metric-label">在住老人</span><strong>428</strong><span class="metric-change">较上月 <b>+8.2%</b></span><el-icon><UserFilled /></el-icon></div>
+            <div class="metric-card metric-orange"><span class="metric-label">今日护理任务</span><strong>96</strong><span class="metric-change">已完成 <b>68%</b></span><el-icon><EditPen /></el-icon></div>
+            <div class="metric-card metric-blue"><span class="metric-label">可用床位</span><strong>72</strong><span class="metric-change">总床位 500 张</span><el-icon><Crop /></el-icon></div>
+            <div class="metric-card metric-teal"><span class="metric-label">本月新入住</span><strong>24</strong><span class="metric-change">较上月 <b>+12.5%</b></span><el-icon><Plus /></el-icon></div>
+          </div>
+
+          <div class="dashboard-grid dashboard-grid-top">
+            <div class="panel chart-panel occupancy-panel"><div class="panel-title"><div><h2>床位使用情况</h2><span>实时入住与空置分布</span></div><el-tag type="success" effect="plain">运行正常</el-tag></div><div ref="occupancyChart" class="chart chart-donut"></div></div>
+            <div class="panel chart-panel"><div class="panel-title"><div><h2>护理完成率</h2><span>过去 7 天任务达成趋势</span></div><strong class="panel-value">94<small>%</small></strong></div><div ref="trendChart" class="chart chart-trend"></div></div>
+          </div>
+
+          <div class="dashboard-grid dashboard-grid-bottom">
+            <div class="panel chart-panel task-panel"><div class="panel-title"><div><h2>任务状态</h2><span>今日护理任务总览</span></div></div><div class="task-content"><div ref="taskChart" class="chart chart-task"></div><div class="task-legend"><div><i class="dot dot-done"></i><span>已完成</span><b>68</b></div><div><i class="dot dot-progress"></i><span>进行中</span><b>18</b></div><div><i class="dot dot-pending"></i><span>待处理</span><b>6</b></div></div></div></div>
+            <div class="panel activity-panel"><div class="panel-title"><div><h2>快捷入口</h2><span>快速访问常用管理功能</span></div></div><div class="quick-links"><button @click="router.push('/care-task')"><el-icon><EditPen /></el-icon><span>护理任务</span><small>查看今日安排</small></button><button @click="router.push('/bed')"><el-icon><Crop /></el-icon><span>床位管理</span><small>分配与调整床位</small></button><button @click="router.push('/elder')"><el-icon><User /></el-icon><span>老人档案</span><small>维护住户信息</small></button></div></div>
+          </div>
+        </section>
+        <router-view v-else></router-view>
       </el-main>
       <!-- 底部区域 -->
     </el-container>
@@ -528,6 +612,38 @@
       }
     }
   }
+
+  .dashboard { max-width: 1480px; margin: 0 auto; }
+  .dashboard-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:20px; margin-bottom:24px; }
+  .eyebrow { margin:0 0 7px; color:var(--app-brand); font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+  .dashboard-heading h1 { margin:0; color:var(--app-ink); font-size:26px; font-weight:700; }
+  .heading-note { margin:6px 0 0; color:var(--app-muted); }
+  .dashboard-heading .el-button { height:40px; }
+  .metric-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:18px; }
+  .metric-card { position:relative; min-height:132px; padding:20px; border:1px solid var(--app-line); border-radius:7px; background:#fff; overflow:hidden; }
+  .metric-card .metric-label,.metric-card .metric-change { display:block; color:var(--app-muted); font-size:13px; }
+  .metric-card strong { display:block; margin:9px 0 5px; color:var(--app-ink); font-size:30px; line-height:1; }
+  .metric-change b { color:var(--app-brand); font-weight:700; }
+  .metric-card .el-icon { position:absolute; right:20px; top:20px; padding:10px; border-radius:7px; font-size:20px; }
+  .metric-green .el-icon { color:#16736a; background:#e5f3ef; } .metric-orange .el-icon { color:#c76b43; background:#fbede7; }
+  .metric-blue .el-icon { color:#4d7ba8; background:#eaf2fa; } .metric-teal .el-icon { color:#4c8c85; background:#e6f3f1; }
+  .dashboard-grid { display:grid; gap:18px; margin-bottom:18px; }
+  .dashboard-grid-top { grid-template-columns: minmax(0, .9fr) minmax(0, 1.6fr); }
+  .dashboard-grid-bottom { grid-template-columns: minmax(0, .9fr) minmax(0, 1.6fr); }
+  .panel { min-width:0; border:1px solid var(--app-line); border-radius:7px; background:#fff; }
+  .panel-title { display:flex; justify-content:space-between; align-items:flex-start; padding:18px 20px 0; }
+  .panel-title h2 { margin:0; color:var(--app-ink); font-size:16px; font-weight:700; }
+  .panel-title span { display:block; margin-top:5px; color:var(--app-muted); font-size:12px; }
+  .panel-value { color:var(--app-brand); font-size:25px; line-height:1; } .panel-value small { font-size:14px; }
+  .chart { width:100%; } .chart-donut { height:235px; } .chart-trend { height:235px; } .chart-task { width:190px; height:190px; }
+  .task-content { display:flex; align-items:center; justify-content:center; gap:14px; min-height:225px; padding:0 16px 12px; }
+  .task-legend { min-width:105px; } .task-legend div { display:grid; grid-template-columns:10px 1fr auto; align-items:center; gap:8px; margin:12px 0; color:var(--app-muted); font-size:12px; } .task-legend b { color:var(--app-ink); font-size:14px; }
+  .dot { width:8px; height:8px; border-radius:50%; } .dot-done { background:#16736a; } .dot-progress { background:#d49a47; } .dot-pending { background:#dce5e0; }
+  .quick-links { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:22px 20px 24px; }
+  .quick-links button { display:flex; flex-direction:column; align-items:flex-start; min-height:118px; padding:16px; border:1px solid var(--app-line); border-radius:6px; background:#fbfcfb; color:var(--app-ink); text-align:left; cursor:pointer; transition:.2s; }
+  .quick-links button:hover { border-color:#9cc8c1; background:#f3faf7; transform:translateY(-2px); } .quick-links .el-icon { margin-bottom:12px; color:var(--app-brand); font-size:20px; } .quick-links span { font-weight:700; } .quick-links small { margin-top:5px; color:var(--app-muted); font-size:11px; }
+  @media (max-width: 900px) { .metric-grid { grid-template-columns:repeat(2,1fr); } .dashboard-grid-top,.dashboard-grid-bottom { grid-template-columns:1fr; } }
+  @media (max-width: 560px) { .dashboard-heading { align-items:flex-start; flex-direction:column; } .dashboard-heading h1 { font-size:22px; } .metric-grid { gap:10px; } .metric-card { padding:15px; min-height:118px; } .metric-card strong { font-size:25px; } .metric-card .el-icon { right:13px; top:13px; } .quick-links { grid-template-columns:1fr; } .task-content { justify-content:space-around; } }
 
 
 </style>

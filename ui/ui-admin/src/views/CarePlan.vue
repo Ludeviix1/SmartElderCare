@@ -8,6 +8,7 @@
   import {ElMessage, ElMessageBox} from 'element-plus'
   import {Plus} from '@element-plus/icons-vue'
   import hasBtnPermission from "@/utils/btnPermission.js";
+  import {useUserInfoStore} from '@/store/userInfo.js'
 
   //表格数据
   const list = ref([])
@@ -18,6 +19,7 @@
     elderId: null,
     careLevelId: null,
     status: null,
+    userId: null,
     page: 1,
     limit: 10
   })
@@ -34,11 +36,21 @@
     })
   }
 
-  loadData()
+  const userInfoStore = useUserInfoStore()
+  const isHugong = ref(false)
 
   //搜索、表单下拉用的老人、护理人员、护理等级、护理项目
   const elderOptions = ref([])
   const userOptions = ref([])
+  const initAccess = () => {
+    const currentUserId = userInfoStore.user?.id
+    if (!currentUserId) return Promise.resolve()
+    return userApi.selectAssignedRole(currentUserId).then(result => {
+      const assignedIds = result.data?.assignedRoleIdList || []
+      isHugong.value = (result.data?.roleList || []).some(role => role.code === 'hugong' && assignedIds.includes(role.id))
+      if (isHugong.value) carePlanQuery.value.userId = currentUserId
+    })
+  }
   const careLevelOptions = ref([])
   const careItemOptions = ref([])
   const loadOptions = () => {
@@ -57,6 +69,7 @@
     })
   }
   loadOptions()
+  initAccess().finally(loadData)
 
   const onSearch = () => {
     carePlanQuery.value.page = 1
@@ -215,6 +228,11 @@
       <el-form-item label="老人">
         <el-select v-model="carePlanQuery.elderId" placeholder="请选择老人" clearable filterable style="width: 160px">
           <el-option v-for="elder in elderOptions" :key="elder.id" :label="elder.name" :value="elder.id"/>
+        </el-select>
+      </el-form-item>
+      <el-form-item v-if="!isHugong" label="护理人员">
+        <el-select v-model="carePlanQuery.userId" placeholder="请选择护理人员" clearable filterable style="width: 160px">
+          <el-option v-for="user in userOptions" :key="user.id" :label="user.name" :value="user.id"/>
         </el-select>
       </el-form-item>
       <el-form-item label="护理等级">

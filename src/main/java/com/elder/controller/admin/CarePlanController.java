@@ -6,9 +6,13 @@ import com.elder.pojo.dto.CarePlanDTO;
 import com.elder.pojo.query.CarePlanQuery;
 import com.elder.pojo.vo.CarePlanVO;
 import com.elder.service.ICarePlanService;
+import com.elder.service.IUserService;
+import com.elder.util.JwtUtil;
 import com.elder.util.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 /**
  * <p>
@@ -24,13 +28,21 @@ public class CarePlanController {
 
     @Autowired
     private ICarePlanService carePlanService;
+    @Autowired
+    private IUserService userService;
 
     /**
      * 分页查询护理计划列表（附带老人、护理人员、护理等级名称）
      * GET /care-plan?page=1&limit=10&name=xxx
      */
     @GetMapping
-    public Result<IPage<CarePlanVO>> list(CarePlanQuery carePlanQuery) {
+    public Result<IPage<CarePlanVO>> list(CarePlanQuery carePlanQuery,
+                                          @RequestHeader("Authorization") String token) {
+        Map<String, Object> map = JwtUtil.parseToken(token);
+        Long currentUserId = Long.valueOf(map.get("id").toString());
+        if (userService.hasRoleCode(currentUserId, "hugong")) {
+            carePlanQuery.setUserId(currentUserId);
+        }
         IPage<CarePlanVO> page = carePlanService.list(carePlanQuery);
         return Result.ok(page);
     }
