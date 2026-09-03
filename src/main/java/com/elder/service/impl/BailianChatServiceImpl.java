@@ -2,6 +2,9 @@ package com.elder.service.impl;
 
 import com.elder.service.IChatService;
 import com.elder.service.IElderService;
+import com.elder.service.IExamAppointmentService;
+import com.elder.service.ICarePlanService;
+import com.elder.service.ICareTaskService;
 import com.elder.tools.ElderTools;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -17,16 +20,27 @@ import reactor.core.publisher.Flux;
 public class BailianChatServiceImpl implements IChatService {
 
     private static final int MAX_MESSAGE_LENGTH = 500;
-    private static final String SYSTEM_PROMPT = "你是康养社区智能健康助手。请用通俗、友善的中文回答老人关于体检、饮食、用药和日常运动的问题。不要诊断疾病或替代医生；遇到胸痛、呼吸困难、突发偏瘫等急症，要建议立即呼救或尽快就医。";
+    private static final String SYSTEM_PROMPT = "你是康养社区智能健康助手。请用通俗、友善的中文回答老人关于体检、饮食、用药和日常运动的问题。"
+            + "当问题涉及本人的档案、体检预约、体检报告、护理计划、待执行护理或已完成护理时，必须优先调用提供的业务工具，并依据工具结果回答；"
+            + "不要编造预约编号、体检结果、护理安排或个人资料。体检报告只能在体检完成后解读，并说明具体医学结论仍以医生意见为准。"
+            + "不要诊断疾病或替代医生；遇到胸痛、呼吸困难、突发偏瘫等急症，要建议立即呼救或尽快就医。";
 
     private final ChatClient chatClient;
     private final ChatMemory chatMemory;
     private final IElderService elderService;
+    private final IExamAppointmentService examAppointmentService;
+    private final ICarePlanService carePlanService;
+    private final ICareTaskService careTaskService;
 
-    public BailianChatServiceImpl(ChatClient.Builder chatClientBuilder, ChatMemory chatMemory, IElderService elderService) {
+    public BailianChatServiceImpl(ChatClient.Builder chatClientBuilder, ChatMemory chatMemory, IElderService elderService,
+                                  IExamAppointmentService examAppointmentService, ICarePlanService carePlanService,
+                                  ICareTaskService careTaskService) {
         this.chatClient = chatClientBuilder.build();
         this.chatMemory = chatMemory;
         this.elderService = elderService;
+        this.examAppointmentService = examAppointmentService;
+        this.carePlanService = carePlanService;
+        this.careTaskService = careTaskService;
     }
 
     @Override
@@ -41,7 +55,7 @@ public class BailianChatServiceImpl implements IChatService {
                     .advisors(MessageChatMemoryAdvisor.builder(chatMemory)
                             .conversationId(String.valueOf(elderId))
                             .build())
-                    .tools(new ElderTools(elderId, elderService))
+                    .tools(createElderTools(elderId))
                     .call()
                     .content();
         } catch (Exception e) {
@@ -61,7 +75,7 @@ public class BailianChatServiceImpl implements IChatService {
                 .advisors(MessageChatMemoryAdvisor.builder(chatMemory)
                         .conversationId(String.valueOf(elderId))
                         .build())
-                .tools(new ElderTools(elderId, elderService))
+                .tools(createElderTools(elderId))
                 .stream()
                 .content()
                 .onErrorResume(e -> {
@@ -74,5 +88,9 @@ public class BailianChatServiceImpl implements IChatService {
     @Override
     public void clearHistory(Long elderId) {
         chatMemory.clear(String.valueOf(elderId));
+    }
+
+    private ElderTools createElderTools(Long elderId) {
+        return new ElderTools(elderId, elderService, examAppointmentService, carePlanService, careTaskService);
     }
 }

@@ -13,7 +13,13 @@ const sending = ref(false)
 const listRef = ref(null)
 const abortController = ref(null)
 let id = 0
-const suggestions = ['高血压平时要注意什么？', '体检前需要空腹吗？', '老年人适合哪些运动？', '我的年龄和住址是什么？']
+const suggestions = [
+  '我最近有哪些体检预约？',
+  '我的护理计划和待执行任务是什么？',
+  '最近完成了哪些护理？',
+  '体检前需要空腹吗？',
+  '高血压平时要注意什么？'
+]
 const canSend = computed(() => input.value.trim() && !sending.value)
 const elderInitial = computed(() => (elderInfoStore.elder.name || '我').slice(0, 1))
 
