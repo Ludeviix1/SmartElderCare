@@ -1,6 +1,8 @@
 server:
   port: ${SERVER_PORT:8081}
 spring:
+  config:
+    import: optional:file:.env[.properties]
   ai:
     dashscope:
       enabled: ${AI_ENABLED:false}

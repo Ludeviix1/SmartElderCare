@@ -227,7 +227,7 @@ spring:
 
 实际配置项请以项目当前 `application.yml` 为准。
 
-数据库配置见`SmartElderCareDatabase.sql`
+数据库初始化脚本见 `SmartElderCareDatabase.sql`。本地开发可将 `.env.example` 复制为 `.env` 后填写数据库账号、JWT 密钥等配置；`.env` 不会被提交。
 
 ### 3. 启动后端
 
