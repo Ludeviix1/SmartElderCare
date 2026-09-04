@@ -1,6 +1,6 @@
 <script setup>
-  import homeApi from '@/api/home.js'
   import examPackageApi from '@/api/examPackage.js'
+  import appointmentApi from '@/api/appointment.js'
   import {onMounted, ref, computed} from 'vue'
   import {useElderInfoStore} from '@/store/elderInfo.js'
   import {useAppointmentStore} from '@/store/appointment.js'
@@ -10,7 +10,7 @@
   const appointmentStore = useAppointmentStore();
 
   const greeting = computed(() => '你好，' + elderInfoStore.elder.name)
-  const healthData = ref({})
+  const healthData = ref({total: 0, pending: 0, completed: 0})
   const notices = ref([])
   const noticeShow = ref(false)
   //热门套餐（后端无gradient字段，前端按下标取色板）
@@ -22,11 +22,24 @@
   const hotPackages = ref([])
 
   onMounted(() => {
-    homeApi.healthData().then(result => {
-      healthData.value = result.data
-    })
-    homeApi.notices().then(result => {
-      notices.value = result.data
+    appointmentApi.list().then(result => {
+      if (result.code === 1 && Array.isArray(result.data)) {
+        const appointments = result.data
+        healthData.value = {
+          total: appointments.length,
+          pending: appointments.filter(item => item.status === 0 || item.status === 1).length,
+          completed: appointments.filter(item => item.status === 2).length
+        }
+        notices.value = appointments
+          .slice()
+          .sort((a, b) => `${b.appointmentDate || ''} ${b.appointmentTime || ''}`.localeCompare(`${a.appointmentDate || ''} ${a.appointmentTime || ''}`))
+          .slice(0, 3)
+          .map(item => ({
+            id: item.id,
+            title: `${item.packageName || '体检套餐'}：${item.appointmentDate || ''} ${item.appointmentTime || ''}`,
+            date: item.status === 2 ? '已完成' : item.status === 3 ? '已取消' : '待体检'
+          }))
+      }
     })
     //取前两个上架套餐作为热门推荐
     examPackageApi.list().then(result => {
@@ -58,19 +71,19 @@
 
     <!--健康数据卡片-->
     <div class="health-card">
-      <div class="health-title">今日健康数据</div>
+      <div class="health-title">我的体检统计</div>
       <div class="health-grid">
         <div class="health-item">
-          <div class="value">{{ healthData.bloodPressure }}</div>
-          <div class="label">血压(mmHg)</div>
+          <div class="value">{{ healthData.total }}</div>
+          <div class="label">全部预约</div>
         </div>
         <div class="health-item">
-          <div class="value">{{ healthData.heartRate }}</div>
-          <div class="label">心率(次/分)</div>
+          <div class="value">{{ healthData.pending }}</div>
+          <div class="label">待体检</div>
         </div>
         <div class="health-item">
-          <div class="value">{{ healthData.bloodSugar }}</div>
-          <div class="label">血糖(mmol/L)</div>
+          <div class="value">{{ healthData.completed }}</div>
+          <div class="label">已完成</div>
         </div>
       </div>
     </div>

@@ -14,6 +14,7 @@
   const route = useRoute();
   import * as ElementPlusIconsVue from '@element-plus/icons-vue'
   import userApi from "@/api/user.js";
+  import dashboardApi from "@/api/dashboard.js";
   import {useTokenStore} from '@/store/token.js'
   const tokenStore = useTokenStore();
   import {useUserInfoStore} from '@/store/userInfo.js'
@@ -25,10 +26,23 @@
   const occupancyChart = ref(null)
   const trendChart = ref(null)
   const taskChart = ref(null)
+  const dashboard = ref({
+    residentCount: 0, occupiedBeds: 0, availableBeds: 0, totalBeds: 0,
+    todayTasks: 0, completedToday: 0, examPending: 0, examCompleted: 0,
+    trendDates: [], taskTotals: [], taskCompleted: [], taskPending: 0, taskSkipped: 0
+  })
   let charts = []
 
-  const initDashboardCharts = async () => {
+  const completionRate = () => dashboard.value.todayTasks
+    ? Math.round(dashboard.value.completedToday * 100 / dashboard.value.todayTasks)
+    : 0
+  const occupancyRate = () => dashboard.value.totalBeds
+    ? Math.round(dashboard.value.occupiedBeds * 100 / dashboard.value.totalBeds)
+    : 0
+
+  const initLegacyDashboardCharts = async () => {
     await nextTick()
+    const data = dashboard.value
     const chartOptions = [
       {
         el: occupancyChart.value,
@@ -67,13 +81,57 @@
     })
   }
 
+  const initDashboardCharts = async () => {
+    await nextTick()
+    const data = dashboard.value
+    const occupancy = echarts.init(occupancyChart.value)
+    occupancy.setOption({
+      tooltip: {trigger: 'item'},
+      legend: {bottom: 0, left: 'center', itemWidth: 10, itemHeight: 10, textStyle: {color: '#6d7d78'}},
+      series: [{type: 'pie', radius: ['58%', '78%'], center: ['50%', '45%'], avoidLabelOverlap: false,
+        label: {show: true, position: 'center', formatter: `入住率\n{big|${occupancyRate()}%}`, rich: {big: {fontSize: 23, fontWeight: 700, color: '#20332f', lineHeight: 34}, color: '#6d7d78', lineHeight: 20}},
+        data: [{value: data.occupiedBeds, name: '已入住', itemStyle: {color: '#16736a'}}, {value: data.availableBeds, name: '空置床位', itemStyle: {color: '#dfeae5'}}]}]
+    })
+
+    const trend = echarts.init(trendChart.value)
+    trend.setOption({
+      tooltip: {trigger: 'axis'},
+      grid: {left: 38, right: 20, top: 18, bottom: 28},
+      xAxis: {type: 'category', boundaryGap: false, data: data.trendDates.map(date => date.slice(5)), axisLine: {lineStyle: {color: '#dce5e0'}}, axisLabel: {color: '#6d7d78'}},
+      yAxis: {type: 'value', min: 0, max: 100, splitNumber: 4, splitLine: {lineStyle: {color: '#edf2ef'}}, axisLabel: {color: '#8a9893', formatter: '{value}%'}},
+      series: [{name: '护理完成率', type: 'line', smooth: true, symbol: 'circle', symbolSize: 7, data: data.taskTotals.map((total, index) => total ? Math.round(data.taskCompleted[index] * 100 / total) : 0), lineStyle: {width: 3, color: '#c76b43'}, itemStyle: {color: '#c76b43'}, areaStyle: {color: 'rgba(199,107,67,.12)'}}]
+    })
+
+    const task = echarts.init(taskChart.value)
+    task.setOption({
+      tooltip: {trigger: 'item'},
+      series: [{type: 'pie', radius: ['52%', '76%'], center: ['50%', '45%'], label: {show: false}, data: [
+        {value: data.completedToday, name: '已完成', itemStyle: {color: '#16736a'}},
+        {value: data.taskPending, name: '待执行', itemStyle: {color: '#d49a47'}},
+        {value: data.taskSkipped, name: '已取消', itemStyle: {color: '#dce5e0'}}
+      ]}]
+    })
+    charts = [occupancy, trend, task]
+  }
+
+  const loadDashboard = async () => {
+    if (route.path !== '/') return
+    const result = await dashboardApi.overview()
+    if (result.code === 1) {
+      dashboard.value = {...dashboard.value, ...result.data}
+      charts.forEach(chart => chart.dispose())
+      charts = []
+      await initDashboardCharts()
+    }
+  }
+
   const resizeCharts = () => charts.forEach(chart => chart.resize())
   watch(() => route.path, async (path) => {
     charts.forEach(chart => chart.dispose())
     charts = []
-    if (path === '/') await initDashboardCharts()
+    if (path === '/') await loadDashboard()
   })
-  onMounted(() => { initDashboardCharts(); window.addEventListener('resize', resizeCharts) })
+  onMounted(() => { loadDashboard(); window.addEventListener('resize', resizeCharts) })
   onBeforeUnmount(() => { window.removeEventListener('resize', resizeCharts); charts.forEach(chart => chart.dispose()) })
 
   const dialogFormVisible = ref(false)
@@ -337,7 +395,6 @@
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="updateUserInfo" :icon="User">基本资料</el-dropdown-item>
-              <el-dropdown-item command="avatar" :icon="Crop">更换头像</el-dropdown-item>
               <el-dropdown-item command="resetPassword" :icon="EditPen">重置密码</el-dropdown-item>
               <el-dropdown-item command="logout" :icon="SwitchButton">退出登录</el-dropdown-item>
             </el-dropdown-menu>
@@ -351,12 +408,18 @@
             <div>
               <p class="eyebrow">运营概览 · {{ new Date().toLocaleDateString('zh-CN', {month: 'long', day: 'numeric'}) }}</p>
               <h1>欢迎回来，{{ userInfoStore.user.name || '管理员' }}</h1>
-              <p class="heading-note">这里是养老中心今天的运营状态，所有关键指标一目了然。</p>
+              <p class="heading-note">数据大屏</p>
             </div>
             <el-button type="primary" plain @click="router.push('/elder')">查看老人档案 <el-icon><CaretBottom /></el-icon></el-button>
           </div>
 
           <div class="metric-grid">
+            <div class="metric-card metric-green"><span class="metric-label">在住老人</span><strong>{{ dashboard.residentCount }}</strong><span class="metric-change">当前入住状态为“入住中”的老人</span><el-icon><UserFilled /></el-icon></div>
+            <div class="metric-card metric-orange"><span class="metric-label">今日护理任务</span><strong>{{ dashboard.todayTasks }}</strong><span class="metric-change">已完成 <b>{{ completionRate() }}%</b></span><el-icon><EditPen /></el-icon></div>
+            <div class="metric-card metric-blue"><span class="metric-label">可用床位</span><strong>{{ dashboard.availableBeds }}</strong><span class="metric-change">总床位 {{ dashboard.totalBeds }} 张</span><el-icon><Crop /></el-icon></div>
+            <div class="metric-card metric-teal"><span class="metric-label">待体检预约</span><strong>{{ dashboard.examPending }}</strong><span class="metric-change">已完成体检 <b>{{ dashboard.examCompleted }}</b> 人次</span><el-icon><Plus /></el-icon></div>
+          </div>
+          <div v-if="false" class="metric-grid">
             <div class="metric-card metric-green"><span class="metric-label">在住老人</span><strong>428</strong><span class="metric-change">较上月 <b>+8.2%</b></span><el-icon><UserFilled /></el-icon></div>
             <div class="metric-card metric-orange"><span class="metric-label">今日护理任务</span><strong>96</strong><span class="metric-change">已完成 <b>68%</b></span><el-icon><EditPen /></el-icon></div>
             <div class="metric-card metric-blue"><span class="metric-label">可用床位</span><strong>72</strong><span class="metric-change">总床位 500 张</span><el-icon><Crop /></el-icon></div>
@@ -365,11 +428,11 @@
 
           <div class="dashboard-grid dashboard-grid-top">
             <div class="panel chart-panel occupancy-panel"><div class="panel-title"><div><h2>床位使用情况</h2><span>实时入住与空置分布</span></div><el-tag type="success" effect="plain">运行正常</el-tag></div><div ref="occupancyChart" class="chart chart-donut"></div></div>
-            <div class="panel chart-panel"><div class="panel-title"><div><h2>护理完成率</h2><span>过去 7 天任务达成趋势</span></div><strong class="panel-value">94<small>%</small></strong></div><div ref="trendChart" class="chart chart-trend"></div></div>
+            <div class="panel chart-panel"><div class="panel-title"><div><h2>护理完成率</h2><span>过去 7 天任务达成趋势</span></div><strong class="panel-value">{{ completionRate() }}<small>%</small></strong></div><div ref="trendChart" class="chart chart-trend"></div></div>
           </div>
 
           <div class="dashboard-grid dashboard-grid-bottom">
-            <div class="panel chart-panel task-panel"><div class="panel-title"><div><h2>任务状态</h2><span>今日护理任务总览</span></div></div><div class="task-content"><div ref="taskChart" class="chart chart-task"></div><div class="task-legend"><div><i class="dot dot-done"></i><span>已完成</span><b>68</b></div><div><i class="dot dot-progress"></i><span>进行中</span><b>18</b></div><div><i class="dot dot-pending"></i><span>待处理</span><b>6</b></div></div></div></div>
+            <div class="panel chart-panel task-panel"><div class="panel-title"><div><h2>任务状态</h2><span>今日护理任务总览</span></div></div><div class="task-content"><div ref="taskChart" class="chart chart-task"></div><div class="task-legend"><div><i class="dot dot-done"></i><span>已完成</span><b>{{ dashboard.completedToday }}</b></div><div><i class="dot dot-progress"></i><span>待执行</span><b>{{ dashboard.taskPending }}</b></div><div><i class="dot dot-pending"></i><span>已取消</span><b>{{ dashboard.taskSkipped }}</b></div></div></div></div>
             <div class="panel activity-panel"><div class="panel-title"><div><h2>快捷入口</h2><span>快速访问常用管理功能</span></div></div><div class="quick-links"><button @click="router.push('/care-task')"><el-icon><EditPen /></el-icon><span>护理任务</span><small>查看今日安排</small></button><button @click="router.push('/bed')"><el-icon><Crop /></el-icon><span>床位管理</span><small>分配与调整床位</small></button><button @click="router.push('/elder')"><el-icon><User /></el-icon><span>老人档案</span><small>维护住户信息</small></button></div></div>
           </div>
         </section>
