@@ -227,6 +227,8 @@ spring:
 
 实际配置项请以项目当前 `application.yml` 为准。
 
+数据库配置见`SmartElderCareDatabase.sql`
+
 ### 3. 启动后端
 
 ```bash
