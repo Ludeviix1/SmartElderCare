@@ -78,7 +78,6 @@
   const handleSelectionChange = (rows) => {
     //console.log('多选', rows)
     ids = rows.map(row => row.id)
-    console.log(ids)
   }
 
   const deleteAll = () => {
@@ -164,7 +163,6 @@
 
   //上传头像
   const handleAvatarSuccess = (result) => {
-    console.log(result)
     user.value.avatar = result.data
   }
 

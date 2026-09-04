@@ -1,9 +1,10 @@
 server:
-  port: 8081
+  port: ${SERVER_PORT:8081}
 spring:
   ai:
     dashscope:
-      api-key: sk-ws-H.PMRMMDX.XPMg.MEQCIBHo6ash5p4TJViwefIz9U0PQeh9PXGVoOgX2l6oRFzTAiBbojtKqgAjGNpa0dip6hdU6v-6AAhLg_SH4X8toq-wDA
+      enabled: ${AI_ENABLED:false}
+      api-key: ${DASHSCOPE_API_KEY:}
       chat:
         options:
           model: qwen-plus
@@ -11,9 +12,9 @@ spring:
           max-tokens: 1024
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/elder?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: root
+    url: ${DB_URL:jdbc:mysql://localhost:3306/elder?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
   jackson:
     time-zone: GMT+8
     date-format: yyyy-MM-dd HH:mm:ss

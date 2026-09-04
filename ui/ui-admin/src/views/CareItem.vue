@@ -68,7 +68,6 @@
   const handleSelectionChange = (rows) => {
     //console.log('多选', rows)
     ids = rows.map(row => row.id)
-    console.log(ids)
   }
 
   const deleteAll = () => {
@@ -140,7 +139,6 @@
 
   //上传图片
   const handleImageSuccess = (result) => {
-    console.log(result)
     careItem.value.image = result.data
   }
 

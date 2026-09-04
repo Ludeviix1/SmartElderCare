@@ -11,7 +11,6 @@ export const useUserInfoStore = defineStore('userInfo', {
     //actions里面放的是一个一个方法
     actions: {
         setUserInfo(user) {
-            console.log(user)
             this.user = user
         },
         removeUserInfo(value) {

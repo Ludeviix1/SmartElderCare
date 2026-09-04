@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
@@ -17,6 +18,7 @@ import reactor.core.publisher.Flux;
 /** DashScope chat implementation following the reference project's Spring AI flow. */
 @Service
 @Slf4j
+@ConditionalOnProperty(name = "spring.ai.dashscope.enabled", havingValue = "true")
 public class BailianChatServiceImpl implements IChatService {
 
     private static final int MAX_MESSAGE_LENGTH = 500;

@@ -5,6 +5,7 @@ import com.elder.service.IChatService;
 import com.elder.util.JwtUtil;
 import com.elder.util.Result;
 import org.springframework.http.MediaType;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,6 +17,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/app/chat")
+@ConditionalOnProperty(name = "spring.ai.dashscope.enabled", havingValue = "true")
 public class AppChatController {
     private final IChatService chatService;
 

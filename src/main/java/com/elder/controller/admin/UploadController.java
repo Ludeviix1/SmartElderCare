@@ -18,7 +18,6 @@ public class UploadController {
         String uuid = UUID.randomUUID().toString().replace("-", "");
         //a.png
         String filename = file.getOriginalFilename();
-        System.out.println(filename);
         //.png
         String extension = filename.substring(filename.lastIndexOf(".") );
         //7c45616c1e8740d987c41e95f33b9abe.png
@@ -30,13 +29,5 @@ public class UploadController {
             throw new RuntimeException(e);
         }
         return Result.ok("上传成功", url);
-    }
-
-    public static void main(String[] args) {
-        String uuid = UUID.randomUUID().toString();
-        //037681d2-7d98-4739-9318-d89ba83cc6df
-        System.out.println(uuid);
-        //7c45616c1e8740d987c41e95f33b9abe
-        System.out.println(uuid.replace("-", ""));
     }
 }

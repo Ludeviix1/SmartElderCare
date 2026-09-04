@@ -171,7 +171,6 @@
 
   //上传头像
   const handleAvatarSuccess = (result) => {
-    console.log(result)
     user.value.avatar = result.data
   }
 

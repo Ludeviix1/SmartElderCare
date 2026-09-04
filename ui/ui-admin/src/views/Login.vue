@@ -15,7 +15,6 @@
   })
 
   const login = () => {
-    console.log(user.value)
     userApi.login(user.value).then(result => {
       if (result.code == 1) {
         ElMessage.success(result.msg)

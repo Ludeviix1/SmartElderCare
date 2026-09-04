@@ -59,7 +59,6 @@
   const handleSelectionChange = (rows) => {
     //console.log('多选', rows)
     ids = rows.map(row => row.id)
-    console.log(ids)
   }
 
   const deleteAll = () => {
@@ -166,9 +165,7 @@
   }
 
   const assignPermission = () => {
-    debugger
     let checkedNodes = treeRef.value.getCheckedNodes(false, true);
-    console.log(checkedNodes);
     let permissionIds = checkedNodes.map((node) => node.id);
     permissionIds = permissionIds.join(',');
     roleApi.assignPermission(role.value.id, permissionIds).then((result) => {

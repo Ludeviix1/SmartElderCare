@@ -5,6 +5,19 @@ target/
 !**/src/test/**/target/
 
 logs/
+node_modules/
+dist/
+.npm-cache/
+.vite/
+.vite-temp/
+
+# Local credentials and machine-specific overrides
+application-local.yml
+application-local.yaml
+application-local.properties
+.env
+.env.*
+!.env.example
 
 ### STS ###
 .apt_generated

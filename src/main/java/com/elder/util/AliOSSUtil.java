@@ -1,80 +1,59 @@
 package com.elder.util;
 
-import com.aliyun.oss.ClientException;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
-import com.aliyun.oss.OSSException;
 import com.aliyun.oss.model.PutObjectRequest;
-import com.aliyun.oss.model.PutObjectResult;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.InputStream;
 
-public class AliOSSUtil {
-    // Endpoint以华东1（杭州）为例，其它Region请按实际情况填写。
-    private static final String ENDPOINT = "https://oss-cn-beijing.aliyuncs.com";
-    // 从环境变量中获取访问凭证。运行本代码示例之前，请确保已设置环境变量OSS_ACCESS_KEY_ID和OSS_ACCESS_KEY_SECRET。
-    //EnvironmentVariableCredentialsProvider credentialsProvider = CredentialsProviderFactory.newEnvironmentVariableCredentialsProvider();
-    private static final String ACCESS_KEY_ID = "LTAI5tA9hotgUwbgkzr5xaQi";
-    private static final String ACCESS_KEY_SECRET = "TIyivrhVywIlGc2X6CeI3XvC4w4c7z";
-    // 填写Bucket名称，例如examplebucket。
-    private static final String BUCKET_NAME = "ai2607";
+@Slf4j
+public final class AliOSSUtil {
 
-    public static String uploadFile(String objectName, InputStream inputStream) throws Exception {
-        // 创建OSSClient实例。
-        OSS ossClient = new OSSClientBuilder().build(ENDPOINT, ACCESS_KEY_ID, ACCESS_KEY_SECRET);
+    private AliOSSUtil() {
+    }
 
-        //公网访问地址
-        String url = "";
+    public static String uploadFile(String objectName, InputStream inputStream) {
+        String endpoint = required("OSS_ENDPOINT");
+        String accessKeyId = required("OSS_ACCESS_KEY_ID");
+        String accessKeySecret = required("OSS_ACCESS_KEY_SECRET");
+        String bucketName = required("OSS_BUCKET_NAME");
+
+        OSS ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
         try {
-            // 创建PutObjectRequest对象。
-            PutObjectRequest putObjectRequest = new PutObjectRequest(BUCKET_NAME, objectName, inputStream);
-            // 创建PutObject请求。
-            PutObjectResult result = ossClient.putObject(putObjectRequest);
-            //https://java2403-mall.oss-cn-beijing.aliyuncs.com/1.jpg
-            //url组层：https://bucket名称.区域节点/objectName
-            url = "https://" + BUCKET_NAME + "." + ENDPOINT.substring(ENDPOINT.lastIndexOf("/") + 1) + "/" + objectName;
-        } catch (OSSException oe) {
-            System.out.println("Caught an OSSException, which means your request made it to OSS, "
-                    + "but was rejected with an error response for some reason.");
-            System.out.println("Error Message:" + oe.getErrorMessage());
-            System.out.println("Error Code:" + oe.getErrorCode());
-            System.out.println("Request ID:" + oe.getRequestId());
-            System.out.println("Host ID:" + oe.getHostId());
-        } catch (ClientException ce) {
-            System.out.println("Caught an ClientException, which means the client encountered "
-                    + "a serious internal problem while trying to communicate with OSS, "
-                    + "such as not being able to access the network.");
-            System.out.println("Error Message:" + ce.getMessage());
+            ossClient.putObject(new PutObjectRequest(bucketName, objectName, inputStream));
+            return "https://" + bucketName + "." + endpoint.substring(endpoint.lastIndexOf('/') + 1) + "/" + objectName;
+        } catch (Exception e) {
+            log.error("OSS upload failed for object={}", objectName, e);
+            throw new IllegalStateException("文件上传失败，请稍后重试", e);
         } finally {
-            if (ossClient != null) {
-                ossClient.shutdown();
-            }
+            ossClient.shutdown();
         }
-        return url;
     }
 
     public static void deleteFile(String url) {
-        // 创建OSSClient实例。
-        OSS ossClient = new OSSClientBuilder().build(ENDPOINT, ACCESS_KEY_ID, ACCESS_KEY_SECRET);
+        String endpoint = required("OSS_ENDPOINT");
+        String accessKeyId = required("OSS_ACCESS_KEY_ID");
+        String accessKeySecret = required("OSS_ACCESS_KEY_SECRET");
+        String bucketName = required("OSS_BUCKET_NAME");
+        String objectName = url.substring(url.lastIndexOf('/') + 1);
+
+        OSS ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
         try {
-            // 删除文件或目录。如果要删除目录，目录必须为空。
-            ossClient.deleteObject(BUCKET_NAME, url.substring(url.lastIndexOf("/") + 1));
-        } catch (OSSException oe) {
-            System.out.println("Caught an OSSException, which means your request made it to OSS, "
-                    + "but was rejected with an error response for some reason.");
-            System.out.println("Error Message:" + oe.getErrorMessage());
-            System.out.println("Error Code:" + oe.getErrorCode());
-            System.out.println("Request ID:" + oe.getRequestId());
-            System.out.println("Host ID:" + oe.getHostId());
-        } catch (ClientException ce) {
-            System.out.println("Caught an ClientException, which means the client encountered "
-                    + "a serious internal problem while trying to communicate with OSS, "
-                    + "such as not being able to access the network.");
-            System.out.println("Error Message:" + ce.getMessage());
+            ossClient.deleteObject(bucketName, objectName);
+        } catch (Exception e) {
+            log.error("OSS delete failed for object={}", objectName, e);
+            throw new IllegalStateException("文件删除失败，请稍后重试", e);
         } finally {
-            if (ossClient != null) {
-                ossClient.shutdown();
-            }
+            ossClient.shutdown();
         }
+    }
+
+    private static String required(String name) {
+        String value = System.getenv(name);
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException(name + " must be configured");
+        }
+        return value.trim();
     }
 }

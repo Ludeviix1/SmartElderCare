@@ -10,7 +10,6 @@ export const useTokenStore = defineStore('token', {
     //actions里面放的是一个一个方法
     actions: {
         setToken(newToken) {
-            console.log(newToken)
             this.token = newToken
         },
         removeToken(value) {
